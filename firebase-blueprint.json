@@ -1,0 +1,133 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Public and private user information including health summary.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "age": { "type": "integer" },
+        "gender": { "type": "string" },
+        "bloodGroup": { "type": "string" },
+        "healthSummary": { "type": "string", "description": "AI-generated summary of health data." },
+        "preferredCards": { "type": "array", "items": { "type": "string" }, "description": "List of credit cards the user owns for discounts." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "fullName", "email"]
+    },
+    "HealthRecord": {
+      "title": "Health Record",
+      "description": "Daily/periodic health logs or medical reports for analysis.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "symptoms": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" },
+        "vitals": {
+          "type": "object",
+          "properties": {
+            "bp": { "type": "string" },
+            "sugar": { "type": "number" },
+            "weight": { "type": "number" }
+          }
+        },
+        "reportUrl": { "type": "string", "description": "URL to external report file if any." }
+      },
+      "required": ["userId", "date"]
+    },
+    "Appointment": {
+      "title": "Medical Appointment",
+      "description": "Appointment booking between user and doctor/hospital.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "hospitalName": { "type": "string" },
+        "hospitalId": { "type": "string" },
+        "appointmentDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "completed", "cancelled"] },
+        "type": { "type": "string", "description": "Virtual or In-person" },
+        "symptoms": { "type": "string" }
+      },
+      "required": ["userId", "doctorName", "appointmentDate", "status"]
+    },
+    "Hospital": {
+      "title": "Hospital Info",
+      "description": "Information about hospitals in Delhi.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "locality": { "type": "string" },
+        "specialties": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "number" },
+        "contact": { "type": "string" },
+        "isGov": { "type": "boolean" }
+      },
+      "required": ["name", "address", "locality"]
+    },
+    "Offer": {
+      "title": "Discount Offer",
+      "description": "Healthcare discounts based on credit cards or memberships.",
+      "type": "object",
+      "properties": {
+        "bankName": { "type": "string" },
+        "cardType": { "type": "string" },
+        "discountPercent": { "type": "number" },
+        "description": { "type": "string" },
+        "validHospitalIds": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["bankName", "discountPercent"]
+    },
+    "ChatSession": {
+      "title": "AI Chat Session",
+      "description": "Historical chat context for AI medical assistant.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "lastUpdated": { "type": "string", "format": "date-time" },
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": { "type": "string" },
+              "content": { "type": "string" },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      },
+      "required": ["userId", "messages"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Store user profiles."
+    },
+    "/users/{userId}/healthRecords/{recordId}": {
+      "schema": "HealthRecord",
+      "description": "Store individual health data entries."
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Direct hospital/doctor appointments."
+    },
+    "/hospitals/{hospitalId}": {
+      "schema": "Hospital",
+      "description": "Registry of hospitals in Delhi."
+    },
+    "/offers/{offerId}": {
+      "schema": "Offer",
+      "description": "Credit card and bank based discount offers."
+    },
+    "/users/{userId}/chatSessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "AI conversation history for health queries."
+    }
+  }
+}

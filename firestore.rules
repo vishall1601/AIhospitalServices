@@ -1,0 +1,92 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 1. User Profile Rules
+    function isValidUserProfile(data) {
+      return data.uid is string && data.uid == request.auth.uid &&
+             data.fullName is string && data.fullName.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             (data.get('age', 0) is int) &&
+             (data.get('healthSummary', '') is string) &&
+             (data.get('preferredCards', []) is list);
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(incoming()) && incoming().keys().hasAll(['uid', 'fullName', 'email']);
+      allow update: if isOwner(userId) && isValidUserProfile(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'age', 'gender', 'bloodGroup', 'healthSummary', 'preferredCards']);
+      
+      // Health Records subcollection
+      match /healthRecords/{recordId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(recordId) && incoming().userId == userId && incoming().date is timestamp;
+        allow update: if isOwner(userId) && incoming().userId == existing().userId;
+        allow delete: if isOwner(userId);
+      }
+
+      // Chat Sessions subcollection
+      match /chatSessions/{sessionId} {
+        allow list, get: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(sessionId) && incoming().userId == userId;
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // 2. Appointments Rules
+    function isValidAppointment(data) {
+      return data.userId == request.auth.uid &&
+             data.doctorName is string && data.doctorName.size() <= 100 &&
+             data.status in ['pending', 'confirmed', 'completed', 'cancelled'] &&
+             data.appointmentDate is timestamp;
+    }
+
+    match /appointments/{appointmentId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(appointmentId) && isValidAppointment(incoming());
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status', 'symptoms', 'appointmentDate']);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // 3. Public Registry (Hospitals, Offers)
+    match /hospitals/{hospitalId} {
+      allow list, get: if isSignedIn();
+      // Write access normally for admins. For this app, let's keep it read-only.
+      allow write: if false;
+    }
+
+    match /offers/{offerId} {
+      allow list, get: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

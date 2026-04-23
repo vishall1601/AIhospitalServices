@@ -1,0 +1,8 @@
+{
+  "name": "Swasthya Delhi - AI Hospital Service",
+  "description": "AI-powered healthcare platform for Delhi. Features include medical Q&A, appointment booking, hospital search, and secure health data analysis with personalized health offers and government facilities.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}
